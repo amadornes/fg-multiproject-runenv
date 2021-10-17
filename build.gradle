@@ -23,12 +23,18 @@ minecraft {
 
     // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
+    var runArgs = project.ext.has("runArgs") ? project.ext.runArgs : null
+
     runs {
         client {
             workingDirectory rootProject.file('run/client')
 
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
+
+            if (runArgs) {
+                args runArgs
+            }
         }
 
         server {
@@ -36,6 +42,10 @@ minecraft {
 
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
+
+            if (runArgs) {
+                args runArgs
+            }
         }
     }
 
