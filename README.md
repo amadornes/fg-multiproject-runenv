@@ -9,11 +9,29 @@ This repository on its own will **NOT** result in a multiproject development env
 It **MUST** be paired with a root buildscript like the one found [here](https://github.com/amadornes/fg-multiproject-template).  
 Setup instructions can be found in the aforementioned repository.
 
-## Known issues
- - Access transformers are not supported
+## Natively Configurable Elements
+The following elements are externally configurable via the `ext` block on the project.
+ - `mcversion`: Minecraft version **[required]**
+ - `forgeversion`: Forge version **[required]**
+ - `javaversion`: Java version
+   - Default: 17
+ - `mappings`: Mappings
+   - Default: mojmap @ \<mcversion>
+ - `runArgs`: Run arguments (all runs)
+   - Default: []
+ - `runProps`: Run properties (all runs)
+   - Defaults:
+     - `forge.logging.markers`: `REGISTRIES`
+     - `forge.logging.console.level`: `debug`
+     - `mixin.env.remapRefMap`: `true`
+     - `mixin.env.refMapRemappingFile`: `${projectDir}/build/createSrgToMcp/output.srg`
+     - 
+Any other elements, such as dependencies may be externally configured through an `afterEvaluate` block.
 
-## Currently untested
- - Mixin support
+## Verified Compatibility
+ - Mixins
+ - Access transformers
+ - Custom sourcesets
 
 ## Contributions
 Pull requests adding extended feature support and bugfixes are welcome.  

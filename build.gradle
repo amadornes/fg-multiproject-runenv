@@ -16,36 +16,68 @@ rootProject.subprojects.forEach(p -> {
     evaluationDependsOn p.path
 })
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(16)
+// The java version is configurable, but defaults to 17
+java.toolchain.languageVersion = JavaLanguageVersion.of(project.ext.find("javaversion") ?: 17)
+
+// Create source sets matching all other projects to stop ForgeGradle from complaining about mismatches
+rootProject.subprojects.forEach(p -> {
+    if (p == project) return
+    p.sourceSets.all(ss -> {
+        sourceSets.maybeCreate(ss.name)
+    })
+})
 
 minecraft {
-    mappings channel: 'official', version: project.ext.mcversion
+    // Mappings can be configured directly, but will default to mojmap for the selected version
+    var userMappings = project.ext.find("mappings")
+    if (userMappings) {
+        mappings userMappings
+    } else {
+        mappings channel: 'official', version: project.ext.mcversion
+    }
 
-    // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
-
-    var runArgs = project.ext.has("runArgs") ? project.ext.runArgs : null
+    // Apply access transformers from all other projects
+    var ats = [];
+    rootProject.subprojects.forEach(p -> {
+        if (p == project) return
+        p.pluginManager.withPlugin('net.minecraftforge.gradle') {
+            var at = p.minecraft.accessTransformers
+            if (at != null) {
+                ats.addAll(at);
+            }
+        }
+    })
+    accessTransformers ats
 
     runs {
         client {
             workingDirectory rootProject.file('run/client')
-
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-
-            if (runArgs) {
-                args runArgs
-            }
         }
-
         server {
             workingDirectory rootProject.file('run/server')
+        }
+    }
 
+    runs.all {
+        ideaModule "${rootProject.name}${project.path}.main".replace(":", ".")
+
+        // Apply user-provided properties to all runs, or the default ones if not specified
+        var userProps = project.ext.find("runProps")
+        if (userProps) {
+            userProps.every { e ->
+                property e.key, e.value
+            }
+        } else {
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+        }
 
-            if (runArgs) {
-                args runArgs
-            }
+        // Apply user-provided arguments to all runs
+        var userRunArgs = project.ext.find("runArgs")
+        if (userRunArgs) {
+            args userRunArgs
         }
     }
 
