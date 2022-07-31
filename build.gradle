@@ -1,3 +1,5 @@
+import net.minecraftforge.gradle.common.util.Utils
+
 buildscript {
     repositories {
         maven { url = 'https://maven.minecraftforge.net' }
@@ -90,7 +92,7 @@ minecraft {
             runs.create("data" + p.name) {
                 // We have to copy everything manually because of potentially different classpaths
                 // when using different plugins per project (ie. mixin vs no mixin)
-                taskName "runData " + p.name
+                taskName "runData" + Utils.capitalize(p.name)
                 environment r.environment
                 main r.main
                 args r.args
