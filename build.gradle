@@ -89,10 +89,9 @@ minecraft {
         p.pluginManager.withPlugin('net.minecraftforge.gradle') {
             var r = p.minecraft.runs.findByName("data");
             if (r == null) return
-            runs.create("data" + p.name) {
+            runs.create("data" + Utils.capitalize(p.name)) {
                 // We have to copy everything manually because of potentially different classpaths
                 // when using different plugins per project (ie. mixin vs no mixin)
-                taskName "runData" + Utils.capitalize(p.name)
                 environment r.environment
                 main r.main
                 args r.args
