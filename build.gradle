@@ -11,21 +11,21 @@ apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'eclipse'
 
 // Make this project depend on all the others
-rootProject.subprojects.forEach(p -> {
+rootProject.subprojects.each {p ->
     if (p == project) return
     evaluationDependsOn p.path
-})
+}
 
 // The java version is configurable, but defaults to 17
 java.toolchain.languageVersion = JavaLanguageVersion.of(project.ext.find("javaversion") ?: 17)
 
 // Create source sets matching all other projects to stop ForgeGradle from complaining about mismatches
-rootProject.subprojects.forEach(p -> {
+rootProject.subprojects.each {p ->
     if (p == project) return
     p.sourceSets.all(ss -> {
         sourceSets.maybeCreate(ss.name)
     })
-})
+}
 
 minecraft {
     // Mappings can be configured directly, but will default to mojmap for the selected version
@@ -38,7 +38,7 @@ minecraft {
 
     // Apply access transformers from all other projects
     var ats = [];
-    rootProject.subprojects.forEach(p -> {
+    rootProject.subprojects.each{p ->
         if (p == project) return
         p.pluginManager.withPlugin('net.minecraftforge.gradle') {
             var at = p.minecraft.accessTransformers
@@ -46,7 +46,7 @@ minecraft {
                 ats.addAll(at);
             }
         }
-    })
+    }
     accessTransformers ats
 
     runs {
@@ -81,24 +81,61 @@ minecraft {
         }
     }
 
-    afterEvaluate {
-        // Add all the mods to the run configurations
-        runs.forEach(run -> {
-            rootProject.subprojects.forEach(p -> {
-                if (p == project) return
-                p.pluginManager.withPlugin('net.minecraftforge.gradle') {
-                    var r = p.minecraft.runs.findByName(run.name);
-                    if (r == null) return
-                    r.mods.forEach(config -> {
+    // Add datagen runs
+    rootProject.subprojects.each {p ->
+        if (p == project) return
+        p.pluginManager.withPlugin('net.minecraftforge.gradle') {
+            var r = p.minecraft.runs.findByName("data");
+            if (r == null) return
+            runs.create("data" + p.name) {
+                // We have to copy everything manually because of potentially different classpaths
+                // when using different plugins per project (ie. mixin vs no mixin)
+                taskName "runData " + p.name
+                environment r.environment
+                main r.main
+                args r.args
+                jvmArgs r.jvmArgs
+                singleInstance r.singleInstance
+                properties r.properties
+                workingDirectory rootProject.file('run/data')
+                forceExit r.forceExit
+                tokens r.tokens
+                lazyTokens r.lazyTokens
+            }
+        }
+    }
+
+    // Add all the mods to the run configurations
+    runs.each {run ->
+        rootProject.subprojects.each {p ->
+            if (p == project) return
+            p.pluginManager.withPlugin('net.minecraftforge.gradle') {
+                var runName = run.name.startsWith("data") ? "data" : run.name
+                var r = p.minecraft.runs.findByName(runName)
+                if (r == null) return
+                run.sources.addAll(r.sources)
+
+                r.mods.each {config ->
+                    if (run.mods.findByName(config.name) == null) {
                         run.mods.create(config.name) {
                             classes = config.classes
                             sources = config.sources
                             resources = config.resources
                         }
-                    })
+                    }
                 }
-            })
-        })
+
+                // On data generation runs, also copy the existing assets references over
+                if (runName == "data") {
+                    r.args.eachWithIndex {arg, i ->
+                        if (arg == "--existing") {
+                            run.args.add(arg)
+                            run.args.add(r.args[i + 1])
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -106,10 +143,10 @@ dependencies {
     minecraft "net.minecraftforge:forge:${project.ext.mcversion}-${project.ext.forgeversion}"
 
     // Add all the mods as runtime dependencies
-    rootProject.subprojects.forEach(p -> {
+    rootProject.subprojects.each {p ->
         if (p == project) return
         p.pluginManager.withPlugin('net.minecraftforge.gradle') {
             runtimeOnly p
         }
-    })
+    }
 }
