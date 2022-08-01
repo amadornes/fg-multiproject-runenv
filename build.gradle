@@ -54,9 +54,11 @@ minecraft {
     runs {
         client {
             workingDirectory rootProject.file('run/client')
+            buildAllProjects true
         }
         server {
             workingDirectory rootProject.file('run/server')
+            buildAllProjects true
         }
     }
 
@@ -102,6 +104,7 @@ minecraft {
                 forceExit r.forceExit
                 tokens r.tokens
                 lazyTokens r.lazyTokens
+                buildAllProjects true
             }
         }
     }
